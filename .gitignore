@@ -1,0 +1,49 @@
+# Secrets and machine-local config — only .env.example is committed
+.env
+.env.*
+!.env.example
+
+# Claude Code's local settings for this repo (paths, permissions, MCP tokens)
+.claude/
+CLAUDE.local.md
+
+# .NET build output
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.userprefs
+TestResults/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+*.nupkg
+
+# Node / Vite
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Windows shortcuts embed absolute paths and the account name — generate them instead
+# (see install-startup.ps1)
+*.lnk
+
+# Logs and local scratch
+*.log
+scratch/
+tmp/
+
+# Editors and OS
+.vs/
+.vscode/
+.idea/
+*.swp
+*~
+Thumbs.db
+desktop.ini
+.DS_Store

@@ -1,0 +1,492 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+
+/*
+ * Design tokens.
+ *
+ * Rules that keep this from turning into soup:
+ *   - Depth comes from elevation + spacing, not from drawing a border around everything.
+ *     Inner content sits on a tint (`surface-3`), not in a bordered box.
+ *   - One accent (violet). It marks selection and the primary action, nothing else.
+ *   - Status colour is semantic only: amber = working, rose = needs you, emerald = done.
+ *   - Two gradients total: the app backdrop, and the primary/selected element. Every other
+ *     surface is flat with a 1px specular top edge to catch the light.
+ */
+:root {
+  --c-app: #f4f2f8;
+  --c-surface: rgba(255, 255, 255, 0.74);
+  --c-surface-2: rgba(255, 255, 255, 0.92);
+  --c-surface-3: rgba(28, 20, 48, 0.045);
+  --c-surface-solid: #fcfbff;
+
+  --c-hairline: rgba(28, 20, 48, 0.08);
+  --c-hairline-strong: rgba(28, 20, 48, 0.14);
+  --c-edge: rgba(255, 255, 255, 0.9);
+
+  --c-fg: #1d1926;
+  --c-fg-muted: #5b5468;
+  --c-fg-dim: #8d8699;
+
+  --c-accent: #6244e5;
+  --c-accent-fg: #ffffff;
+  --c-accent-soft: rgba(98, 68, 229, 0.10);
+  --c-accent-ring: rgba(98, 68, 229, 0.30);
+  --grad-accent: linear-gradient(140deg, #7a5cf5 0%, #6244e5 55%, #5b6ef0 100%);
+
+  --shadow-tile: 0 1px 1px rgba(28, 20, 48, 0.04), 0 10px 30px -18px rgba(28, 20, 48, 0.30);
+  --shadow-pop: 0 32px 70px -28px rgba(28, 20, 48, 0.40);
+  --shadow-accent: 0 6px 18px -8px rgba(98, 68, 229, 0.55);
+
+  --backdrop:
+    radial-gradient(1200px 620px at 12% -10%, rgba(122, 92, 245, 0.10), transparent 70%),
+    radial-gradient(900px 520px at 98% 105%, rgba(236, 130, 170, 0.07), transparent 70%);
+
+  /* Motion. Hover may ease; a click must feel instant — anything over ~110ms on press
+     reads as lag rather than feedback. */
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --t-hover: 150ms;
+  --t-press: 90ms;
+}
+
+.dark {
+  --c-app: #141219;
+  --c-surface: rgba(32, 29, 39, 0.78);
+  --c-surface-2: rgba(41, 37, 50, 0.82);
+  --c-surface-3: rgba(255, 255, 255, 0.045);
+  --c-surface-solid: #1b1822;
+
+  --c-hairline: rgba(255, 255, 255, 0.065);
+  --c-hairline-strong: rgba(255, 255, 255, 0.13);
+  --c-edge: rgba(255, 255, 255, 0.055);
+
+  --c-fg: #e7e3ef;
+  --c-fg-muted: #a8a2b6;
+  --c-fg-dim: #78718a;
+
+  --c-accent: #b39bff;
+  --c-accent-fg: #16121f;
+  --c-accent-soft: rgba(160, 135, 255, 0.14);
+  --c-accent-ring: rgba(160, 135, 255, 0.34);
+  --grad-accent: linear-gradient(140deg, #b79eff 0%, #9a7cf7 55%, #7e8bf5 100%);
+
+  --shadow-tile: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 18px 40px -24px rgba(0, 0, 0, 0.8);
+  --shadow-pop: 0 36px 80px -30px rgba(0, 0, 0, 0.9);
+  --shadow-accent: 0 8px 22px -10px rgba(122, 92, 245, 0.6);
+
+  --backdrop:
+    radial-gradient(1200px 620px at 12% -10%, rgba(122, 92, 245, 0.14), transparent 70%),
+    radial-gradient(900px 520px at 98% 105%, rgba(236, 130, 170, 0.06), transparent 70%);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI Variable Text",
+    "Segoe UI", ui-sans-serif, system-ui, Roboto, sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "ss01";
+  -webkit-font-smoothing: antialiased;
+  background-color: var(--c-app);
+  background-image: var(--backdrop);
+  background-attachment: fixed;
+  color: var(--c-fg);
+}
+
+::selection { background: var(--c-accent-ring); color: var(--c-fg); }
+
+@layer components {
+  /* Outer panel. Translucent, blurred, one hairline, one specular top edge. */
+  .tile {
+    background-color: var(--c-surface);
+    border: 1px solid var(--c-hairline);
+    border-radius: 16px;
+    box-shadow: var(--shadow-tile), inset 0 1px 0 var(--c-edge);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+  }
+
+  /* Same, without blur — for panels that scroll a lot of content. */
+  .tile-flat {
+    background-color: var(--c-surface-2);
+    border: 1px solid var(--c-hairline);
+    border-radius: 16px;
+    box-shadow: var(--shadow-tile), inset 0 1px 0 var(--c-edge);
+  }
+
+  /* Inner grouping: a tint, no border. Depth without another rectangle outline. */
+  .card {
+    background-color: var(--c-surface-3);
+    border-radius: 10px;
+  }
+
+  .seam { border-bottom: 1px solid var(--c-hairline); }
+  .seam-t { border-top: 1px solid var(--c-hairline); }
+
+  /* Micro caps label — the only place letter-spacing is used. */
+  .label {
+    font-size: 10px;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.11em;
+    color: var(--c-fg-dim);
+  }
+
+  /* Quiet control. */
+  .pill {
+    border: 1px solid transparent;
+    background-color: var(--c-surface-3);
+    border-radius: 999px;
+    color: var(--c-fg-muted);
+    transition: background-color var(--t-hover) var(--ease), color var(--t-hover) var(--ease),
+      border-color var(--t-hover) var(--ease), transform var(--t-press) var(--ease);
+  }
+  .pill:hover { color: var(--c-fg); border-color: var(--c-hairline); }
+
+  /* Selected / toggled-on control. */
+  .pill-on {
+    border-color: var(--c-accent-ring);
+    background-color: var(--c-accent-soft);
+    color: var(--c-accent);
+  }
+  .pill-on:hover { color: var(--c-accent); }
+
+  /* The one primary action per view. Carries the accent gradient. */
+  .btn-accent {
+    background-image: var(--grad-accent);
+    color: var(--c-accent-fg);
+    border: none;
+    border-radius: 999px;
+    box-shadow: var(--shadow-accent);
+    font-weight: 550;
+    transition: filter var(--t-hover) var(--ease), transform var(--t-press) var(--ease),
+      box-shadow var(--t-hover) var(--ease);
+  }
+  .btn-accent:hover { filter: brightness(1.08); box-shadow: var(--shadow-accent), 0 0 0 4px var(--c-accent-soft); }
+  .btn-accent:active { transform: scale(0.97); }
+  .btn-accent:disabled { filter: saturate(0.4) brightness(0.9); box-shadow: none; }
+
+  /* Segmented control. The active background is a single indicator element that slides
+     between segments rather than a background that blinks from one item to the next. */
+  .segment {
+    position: relative;
+    background-color: var(--c-surface-3);
+    border-radius: 999px;
+    padding: 3px;
+    display: inline-flex;
+    gap: 2px;
+  }
+  .segment-indicator {
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    border-radius: 999px;
+    background-color: var(--c-surface-solid);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+    transition: transform 240ms var(--ease), width 240ms var(--ease);
+    pointer-events: none;
+  }
+  .dark .segment-indicator { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); }
+  .segment-item {
+    position: relative;
+    z-index: 1;
+    border-radius: 999px;
+    padding: 4px 11px;
+    font-size: 12px;
+    color: var(--c-fg-muted);
+    white-space: nowrap;
+    transition: color var(--t-hover) var(--ease), transform var(--t-press) var(--ease);
+  }
+  .segment-item:hover { color: var(--c-fg); }
+  .segment-item:active { transform: scale(0.97); }
+  .segment-item[data-on="true"] { color: var(--c-fg); }
+  /* Fallback for segments rendered without the sliding indicator. */
+  .segment:not(:has(.segment-indicator)) .segment-item[data-on="true"] {
+    background-color: var(--c-surface-solid);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  }
+
+  .field {
+    background-color: var(--c-surface-3);
+    border: 1px solid transparent;
+    color: var(--c-fg);
+    border-radius: 10px;
+    transition: border-color var(--t-hover) var(--ease), box-shadow var(--t-hover) var(--ease),
+      background-color var(--t-hover) var(--ease);
+  }
+  .field::placeholder { color: var(--c-fg-dim); }
+  .field:focus {
+    outline: none;
+    background-color: var(--c-surface-2);
+    border-color: var(--c-accent-ring);
+    box-shadow: 0 0 0 3px var(--c-accent-soft);
+  }
+
+  /* Row action (pin / hide): legible at rest, solid on hover. Never invisible. */
+  .row-action {
+    color: var(--c-fg-dim);
+    opacity: 0.55;
+    border-radius: 6px;
+    transition: opacity var(--t-hover) var(--ease), color var(--t-hover) var(--ease),
+      background-color var(--t-hover) var(--ease), transform var(--t-press) var(--ease);
+  }
+  .row-action:hover { opacity: 1; background-color: var(--c-surface-3); }
+  .row-action:active { transform: scale(0.9); }
+  .group\/row:hover .row-action { opacity: 0.85; }
+
+  /* Key badge. Recessive but legible — a badge nobody can read is just noise. Holding Alt
+     adds .kbd-hint and the whole map lights up at once. */
+  .kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    padding: 1px 4px;
+    border-radius: 5px;
+    border: 1px solid var(--c-hairline-strong);
+    background-color: var(--c-surface-2);
+    color: var(--c-fg-muted);
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 14px;
+    opacity: 0.75;
+    transition: opacity var(--t-hover) var(--ease), color var(--t-hover) var(--ease),
+      border-color var(--t-hover) var(--ease), background-color var(--t-hover) var(--ease);
+  }
+  .kbd-hint {
+    opacity: 1;
+    color: var(--c-accent);
+    border-color: var(--c-accent-ring);
+    background-color: var(--c-accent-soft);
+  }
+
+  /* On the gradient primary button the badge has to sit on colour, so it flips to a
+     translucent-white treatment instead of the light-grey one. */
+  .btn-accent .kbd {
+    background-color: rgba(255, 255, 255, 0.22);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: var(--c-accent-fg);
+    opacity: 0.9;
+  }
+  .btn-accent:hover .kbd { opacity: 1; background-color: rgba(255, 255, 255, 0.3); }
+  .dark .btn-accent .kbd {
+    background-color: rgba(0, 0, 0, 0.16);
+    border-color: rgba(0, 0, 0, 0.24);
+  }
+
+  /* Inside a toggled-on pill the badge picks up the accent so it reads as one unit. */
+  .pill-on .kbd {
+    color: var(--c-accent);
+    border-color: var(--c-accent-ring);
+    background-color: transparent;
+    opacity: 0.95;
+  }
+
+  /* Badges inside a control follow that control's hover. */
+  .pill:hover .kbd, .segment-item:hover .kbd, .group\/row:hover .kbd { opacity: 1; }
+  .segment-item[data-on="true"] .kbd { opacity: 0.95; }
+
+  /* Press feedback for any control: a quick, small compression. */
+  .press { transition: transform var(--t-press) var(--ease), filter var(--t-hover) var(--ease); }
+  .press:active { transform: scale(0.96); }
+
+  /* Session row: nudges toward the pointer on hover, settles instantly on click. */
+  .row-press {
+    transition: background-color var(--t-hover) var(--ease), transform var(--t-press) var(--ease);
+  }
+  .row-press:hover { transform: translateX(1px); }
+  .row-press:active { transform: translateX(1px) scale(0.995); }
+
+  /* Active-work cube: lifts a hair on hover. */
+  .cube {
+    transition: background-color var(--t-hover) var(--ease), color var(--t-hover) var(--ease),
+      transform var(--t-press) var(--ease), box-shadow var(--t-hover) var(--ease);
+  }
+  .cube:hover { transform: translateY(-1px); }
+  .cube:active { transform: translateY(0) scale(0.98); }
+}
+
+/* Anyone who asks for less motion gets none of the above. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .press:active, .row-press:hover, .row-press:active, .cube:hover, .cube:active,
+  .btn-accent:active, .row-action:active,
+  .pane-in, .pop-in, .dialog-in, .peek-in, .peek-out { transform: none; }
+  .segment-indicator { transition: none; }
+}
+
+/* Scrollbars: present, but they don't compete with content. */
+*::-webkit-scrollbar { width: 12px; height: 12px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--c-hairline-strong);
+  border-radius: 999px;
+  border: 4px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover { border-width: 3px; }
+
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { width: 0; height: 0; }
+
+/* Rendered Markdown in the transcript. Sized for reading: a comfortable measure, tight
+   heading rhythm, code that scrolls inside itself instead of stretching the pane. */
+/* Full width — this is a tool pane, not an article. Code blocks and tables still scroll
+   inside themselves so they never stretch the layout. */
+.md { font-size: 13.5px; line-height: 1.6; color: var(--c-fg); }
+.md > :first-child { margin-top: 0; }
+.md > :last-child { margin-bottom: 0; }
+.md p { margin: 0.5em 0; }
+.md strong { font-weight: 600; color: var(--c-fg); }
+.md em { font-style: italic; }
+.md del { color: var(--c-fg-dim); }
+
+.md h1, .md h2, .md h3, .md h4, .md h5, .md h6 {
+  font-weight: 600;
+  color: var(--c-fg);
+  letter-spacing: -0.01em;
+  margin: 1.1em 0 0.4em;
+  line-height: 1.3;
+}
+.md h1 { font-size: 1.32em; }
+.md h2 { font-size: 1.18em; }
+.md h3 { font-size: 1.06em; }
+.md h4, .md h5, .md h6 { font-size: 1em; color: var(--c-fg-muted); }
+
+.md ul, .md ol { margin: 0.5em 0; padding-left: 1.35em; }
+.md ul { list-style: disc; }
+.md ul ul { list-style: circle; }
+.md ol { list-style: decimal; }
+.md li { margin: 0.2em 0; }
+.md li > p { margin: 0.2em 0; }
+.md li::marker { color: var(--c-fg-dim); }
+
+/* GFM task lists read better without the bullet. */
+.md li:has(> input[type="checkbox"]) { list-style: none; margin-left: -1.1em; }
+.md input[type="checkbox"] { accent-color: var(--c-accent); margin-right: 0.45em; }
+
+.md a { color: var(--c-accent); text-decoration: none; border-bottom: 1px solid var(--c-accent-ring); }
+.md a:hover { border-bottom-color: var(--c-accent); }
+
+.md code {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 0.88em;
+  background: var(--c-surface-3);
+  border-radius: 5px;
+  padding: 0.08em 0.32em;
+  color: #a2661f;
+}
+.dark .md code { color: #e0b872; }
+
+.md pre {
+  margin: 0.6em 0;
+  padding: 0.7em 0.8em;
+  border-radius: 10px;
+  background: var(--c-surface-3);
+  overflow-x: auto;
+}
+.md pre code {
+  background: transparent;
+  color: var(--c-fg);
+  padding: 0;
+  font-size: 0.85em;
+  line-height: 1.55;
+}
+
+.md blockquote {
+  margin: 0.6em 0;
+  padding: 0.1em 0 0.1em 0.8em;
+  border-left: 2px solid var(--c-accent-ring);
+  color: var(--c-fg-muted);
+}
+
+.md hr { border: 0; border-top: 1px solid var(--c-hairline); margin: 1em 0; }
+
+.md-scroll { overflow-x: auto; margin: 0.6em 0; }
+.md table { border-collapse: collapse; font-size: 0.92em; }
+.md th, .md td {
+  border: 1px solid var(--c-hairline);
+  padding: 0.3em 0.6em;
+  text-align: left;
+  vertical-align: top;
+}
+.md th { background: var(--c-surface-3); font-weight: 600; color: var(--c-fg); }
+
+.md img { max-width: 100%; border-radius: 8px; }
+
+/* Jira-rendered HTML (descriptions and comments) — token-driven, follows the theme */
+.jira-html { font-size: 13px; line-height: 1.6; color: var(--c-fg-muted); }
+.jira-html h1, .jira-html h2 { font-size: 0.95rem; font-weight: 600; color: var(--c-fg); margin: 0.6rem 0 0.25rem; }
+.jira-html h3, .jira-html h4 { font-size: 0.85rem; font-weight: 600; color: var(--c-fg); margin: 0.6rem 0 0.25rem; }
+.jira-html p { margin: 0.4rem 0; }
+.jira-html a { color: var(--c-accent); text-decoration: none; border-bottom: 1px solid var(--c-accent-ring); }
+.jira-html a:hover { filter: brightness(1.12); }
+.jira-html ul, .jira-html ol { padding-left: 1.25rem; margin: 0.4rem 0; }
+.jira-html ul { list-style: disc; }
+.jira-html ol { list-style: decimal; }
+.jira-html li { margin: 0.1rem 0; }
+.jira-html code { background: var(--c-surface-3); border-radius: 5px; padding: 0.05rem 0.3rem; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.86em; color: #a2661f; }
+.dark .jira-html code { color: #e0b872; }
+.jira-html pre { background: var(--c-surface-3); border-radius: 10px; padding: 0.7rem; overflow-x: auto; margin: 0.5rem 0; }
+.jira-html pre code { background: transparent; color: var(--c-fg); padding: 0; }
+.jira-html blockquote { border-left: 2px solid var(--c-accent-ring); padding-left: 0.7rem; margin: 0.5rem 0; color: var(--c-fg-dim); }
+.jira-html table { border-collapse: collapse; margin: 0.5rem 0; font-size: 0.85em; }
+.jira-html th, .jira-html td { border: 1px solid var(--c-hairline); padding: 0.25rem 0.55rem; text-align: left; }
+.jira-html th { background: var(--c-surface-3); color: var(--c-fg); font-weight: 600; }
+.jira-html hr { border: 0; border-top: 1px solid var(--c-hairline); margin: 0.7rem 0; }
+.jira-html img { max-width: 100%; border-radius: 8px; }
+.jira-html .panel { background: var(--c-surface-3); border-radius: 10px; padding: 0.55rem 0.7rem; margin: 0.5rem 0; }
+
+/* Switching sessions or tabs: the new pane lifts in. Short enough that it never delays
+   reading, long enough to say "this is different content". */
+@keyframes pane-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+.pane-in { animation: pane-in 200ms var(--ease) both; }
+
+/* Something arriving in place — an active-work cube, a new row of controls. */
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: none; }
+}
+.pop-in { animation: pop-in 180ms var(--ease) both; }
+
+/* Dialogs and the floating terminal. */
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+.dialog-in { animation: dialog-in 200ms var(--ease) both; }
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.backdrop-in { animation: backdrop-in 160ms var(--ease) both; }
+
+/* Session-list peek overlay: slides out of the rail. Fast enough to feel like a reveal
+   rather than a transition — 190ms in, 130ms out. */
+@keyframes peek-in {
+  from { opacity: 0; transform: translateX(-12px) scale(0.99); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes peek-out {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateX(-10px) scale(0.99); }
+}
+.peek-in { animation: peek-in 190ms var(--ease) both; transform-origin: left center; }
+.peek-out {
+  animation: peek-out 130ms var(--ease) both;
+  transform-origin: left center;
+  pointer-events: none;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+.animate-float { animation: float 5s ease-in-out infinite; }

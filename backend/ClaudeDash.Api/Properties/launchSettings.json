@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "ClaudeDash.Api": {
+      "commandName": "Project",
+      "applicationUrl": "http://localhost:7341",
+      "environmentVariables": { "ASPNETCORE_ENVIRONMENT": "Development" }
+    }
+  }
+}
