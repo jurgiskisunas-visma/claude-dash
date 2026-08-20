@@ -40,7 +40,7 @@ backend/ClaudeDash.Api/        .NET 10 Minimal API
     GitService.cs              Diffs + multi-repo discovery (GetMultiChangesAsync)
     GitHubService.cs           `gh pr view` for the PR tab
     PtySessionManager.cs       Backend-owned PTY registry (terminals outlive the browser)
-    FolderPickerService.cs     Native folder dialog for "new session" (Windows)
+    DirectoryBrowseService.cs  Directory listing for the in-app folder browser
     FileWatcherService.cs      FileSystemWatcher → SignalR /hub
   Hubs/DashboardHub.cs         SignalR hub (single "change" event)
   Program.cs                   Endpoint mapping
@@ -364,26 +364,18 @@ rules in `index.css`). Two things worth knowing:
 `NewSessionModal` starts empty — no default path, because one machine's project folder is
 wrong for every other machine. Three ways to fill it in:
 
-- **Browse…** → `POST /api/pick-folder` → `FolderPickerService` opens the host's real folder
-  dialog (PowerShell + WinForms `FolderBrowserDialog` on an `-STA` thread) and returns the
-  absolute path. This exists because the browser *cannot* provide one: the File System Access
-  API hands back a directory handle with no path, and `webkitdirectory` gives only relative
-  paths. Windows-only; the response is `{ path, error }` where a null path with no error means
-  the user cancelled.
+- **Browse…** opens a folder browser *inside the page* (`FolderBrowser.tsx`), backed by
+  `GET /api/browse?path=` (`DirectoryBrowseService`): drives, one level of sub-folders, up a
+  level, "use this folder". Click to descend, double-click to choose.
 
-  Three details were needed to make it actually usable, all learned the hard way:
-
-  1. **An invisible owner window.** Without an owner the dialog opens *behind* the browser and
-     the button looks dead while a PowerShell process waits forever. The owner is `TopMost`, so
-     the dialog is drawn on top even though Windows won't hand it focus from another app.
-  2. **Placed at the mouse cursor**, with the focused window as fallback and the primary screen
-     last. `CenterScreen` put it on a monitor the user wasn't looking at — on a multi-monitor
-     layout with negative coordinates it landed at (-909, 1286), i.e. nowhere near the click.
-     The dialog process also calls `SetProcessDPIAware()`, or form coordinates (logical units)
-     drift from `GetCursorPos` (physical pixels) by the display scaling factor.
-  3. **A second request takes over.** The service tracks the open dialog process and kills it
-     before opening a new one. The earlier "one at a time" guard meant a dialog the user never
-     saw wedged the Browse button until the backend restarted.
+  This replaced a native `FolderBrowserDialog`, and the reason is worth keeping: the dialog was
+  spawned by the backend — a background web server — and Windows will not let such a process
+  take the foreground, so it opened *behind the browser*. Verified from window enumeration: the
+  window existed, was visible, centred on the primary display, and covered by Chrome. An owner
+  window, `HWND_TOPMOST`, `BringWindowToTop` and a synthetic ALT tap (to satisfy the
+  focus-stealing rules) got it in front only some of the time — it is a race with whatever else
+  owns focus. A panel in the page has none of that ambiguity and works on any OS. Don't
+  reintroduce the native dialog.
 - **Recent** capsules — the last 10 directories you actually started in
   (`src/lib/recentPaths.ts`, localStorage). Click fills the field, double-click starts.
 - **Known workspaces** — from `/api/workspaces`, minus anything already in Recent.
@@ -442,7 +434,7 @@ Hash-based via `App.tsx`'s `parseHash` / `writeHash`. Only `#/sessions/<sessionI
 ```
 GET  /api/health
 GET  /api/scratch                        ({ cwd, workspaceId } for the scratch-pad terminal)
-POST /api/pick-folder?start=             (opens the host's native folder dialog; { path } or null)
+GET  /api/browse?path=                   (drives + sub-folders for the in-app folder browser)
 GET  /api/terminals                      (PTY sessions alive on the backend)
 POST /api/terminals/rename?from=&to=     (re-key a session; used when a launch key is promoted)
 DELETE /api/terminals?key=               (explicit kill — the only way a PTY ends from the UI)

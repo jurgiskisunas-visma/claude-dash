@@ -154,3 +154,17 @@ export interface LiveTerminal {
   attached: number;
   exited: boolean;
 }
+
+export interface BrowseEntry {
+  name: string;
+  path: string;
+}
+
+/** One level of the in-app folder browser. */
+export interface BrowseResult {
+  path: string | null;
+  parent: string | null;
+  directories: BrowseEntry[];
+  drives: BrowseEntry[];
+  error: string | null;
+}

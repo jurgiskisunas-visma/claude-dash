@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { api } from "../api/client";
 import { getRecentPaths, subscribeRecentPaths } from "../lib/recentPaths";
+import { FolderBrowser } from "./FolderBrowser";
 
 interface Props {
   onCancel: () => void;
@@ -13,8 +14,7 @@ export function NewSessionModal({ onCancel, onStart }: Props) {
   // Starts empty: pre-filling one machine's project folder is wrong for everyone else, and
   // the recent list below is a better answer anyway.
   const [cwd, setCwd] = useState("");
-  const [picking, setPicking] = useState(false);
-  const [pickError, setPickError] = useState<string | null>(null);
+  const [browsing, setBrowsing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const recent = useSyncExternalStore(subscribeRecentPaths, getRecentPaths);
@@ -42,22 +42,6 @@ export function NewSessionModal({ onCancel, onStart }: Props) {
   function start(path = trimmed) {
     if (!path) return;
     onStart(path);
-  }
-
-  async function browse() {
-    setPicking(true);
-    setPickError(null);
-    try {
-      const picked = await api.pickFolder(trimmed || recent[0]);
-      if (picked) {
-        setCwd(picked);
-        inputRef.current?.focus();
-      }
-    } catch (e) {
-      setPickError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setPicking(false);
-    }
   }
 
   return (
@@ -89,21 +73,25 @@ export function NewSessionModal({ onCancel, onStart }: Props) {
                 placeholder="Pick a folder, or paste a path"
               />
               <button
-                onClick={browse}
-                disabled={picking}
-                title="Open the system folder picker on this machine"
-                className="pill press px-3 py-2 text-xs shrink-0 disabled:opacity-50"
+                onClick={() => setBrowsing((v) => !v)}
+                title="Browse the folders on this machine"
+                className={clsx("press px-3 py-2 text-xs shrink-0", browsing ? "pill pill-on" : "pill")}
               >
-                {picking ? "Waiting…" : "Browse…"}
+                Browse…
               </button>
             </div>
-            {picking && (
-              <span className="text-xs text-fg-dim mt-1.5 block">
-                The folder dialog is open at your mouse pointer. Clicking Browse again reopens it.
-              </span>
-            )}
-            {pickError && (
-              <span className="text-xs text-rose-600 dark:text-rose-300 mt-1.5 block">{pickError}</span>
+            {browsing && (
+              <div className="mt-2">
+                <FolderBrowser
+                  startPath={trimmed || recent[0]}
+                  onPick={(picked) => {
+                    setCwd(picked);
+                    setBrowsing(false);
+                    inputRef.current?.focus();
+                  }}
+                  onClose={() => setBrowsing(false)}
+                />
+              </div>
             )}
           </div>
 

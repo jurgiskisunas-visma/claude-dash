@@ -7,6 +7,7 @@ import type {
   JiraIssueDetail,
   MultiChangesResult,
   LiveTerminal,
+  BrowseResult,
 } from "../types/api";
 
 async function getJson<T>(url: string): Promise<T> {
@@ -80,19 +81,9 @@ export const api = {
     return `${proto}//${window.location.host}/ws/terminal?${params}`;
   },
 
-  /**
-   * Opens the host's native folder dialog (the backend runs on the same machine) and
-   * resolves with the chosen absolute path, or null if the user cancelled.
-   */
-  async pickFolder(start?: string): Promise<string | null> {
-    const qs = start ? `?start=${encodeURIComponent(start)}` : "";
-    const r = await fetch(`/api/pick-folder${qs}`, { method: "POST" });
-    if (!r.ok) throw new Error(`Folder picker failed (${r.status})`);
-    const data = await r.json() as { path: string | null; error?: string | null };
-    // A null path with no error is a plain cancel, which is not worth reporting.
-    if (data.error) throw new Error(data.error);
-    return data.path ?? null;
-  },
+  /** One level of the host's filesystem, for the in-app folder browser. */
+  browse: (path?: string) =>
+    getJson<BrowseResult>(`/api/browse${path ? `?path=${encodeURIComponent(path)}` : ""}`),
 
   /** PTY sessions alive on the backend right now (they outlive this browser tab). */
   liveTerminals: () => getJson<LiveTerminal[]>("/api/terminals"),

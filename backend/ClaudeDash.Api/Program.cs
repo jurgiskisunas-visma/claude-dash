@@ -27,7 +27,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<ClaudeDataService>();
 builder.Services.AddSingleton<JiraService>();
 builder.Services.AddSingleton<PtySessionManager>();
-builder.Services.AddSingleton<FolderPickerService>();
+builder.Services.AddSingleton<DirectoryBrowseService>();
 builder.Services.AddSingleton<TerminalService>();
 builder.Services.AddSingleton<GitService>();
 builder.Services.AddSingleton<GitHubService>();
@@ -58,13 +58,10 @@ app.MapGet("/api/health", (ClaudeDataService d, JiraService j, IConfiguration cf
     serverTime = DateTime.UtcNow,
 }));
 
-// Native folder picker. The browser cannot hand back an absolute path, and the backend runs
-// on the same machine as the UI, so it opens the real dialog. Returns null path on cancel.
-app.MapPost("/api/pick-folder", async (FolderPickerService picker, string? start, CancellationToken ct) =>
-{
-    var result = await picker.PickAsync(string.IsNullOrWhiteSpace(start) ? null : start, ct);
-    return Results.Ok(new { path = result.Path, error = result.Error });
-});
+// Directory listing for the in-app folder browser. A native dialog was tried first and
+// abandoned: spawned from a background web server, Windows will not reliably let it take the
+// foreground, so it opened behind the browser. See DirectoryBrowseService.
+app.MapGet("/api/browse", (DirectoryBrowseService svc, string? path) => Results.Ok(svc.Browse(path)));
 
 // Scratch pad: a dedicated cwd for the always-on popup terminal. Its sessions are
 // filtered out of the session list by the frontend so "small talk" doesn't pollute it.
