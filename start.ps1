@@ -32,6 +32,7 @@ if ($env:JIRA_DOMAIN)    { $env:Jira__Domain   = $env:JIRA_DOMAIN }
 if ($env:JIRA_EMAIL)     { $env:Jira__Email    = $env:JIRA_EMAIL }
 if ($env:JIRA_API_TOKEN) { $env:Jira__ApiToken = $env:JIRA_API_TOKEN }
 if ($env:JIRA_STATUS_LADDER) { $env:Jira__StatusLadder = $env:JIRA_STATUS_LADDER }
+if ($env:SCRATCH_DIR)    { $env:Scratch__Dir  = $env:SCRATCH_DIR }
 if ($env:CLAUDE_HOME)    { $env:ClaudeDash__ClaudeHome = $env:CLAUDE_HOME }
 
 Write-Host "Backend  → http://localhost:7341"

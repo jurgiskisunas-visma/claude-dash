@@ -65,10 +65,14 @@ app.MapGet("/api/browse", (DirectoryBrowseService svc, string? path) => Results.
 
 // Scratch pad: a dedicated cwd for the always-on popup terminal. Its sessions are
 // filtered out of the session list by the frontend so "small talk" doesn't pollute it.
-app.MapGet("/api/scratch", () =>
+app.MapGet("/api/scratch", (IConfiguration cfg) =>
 {
-    var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-    var cwd = Path.Combine(home, "claudedash-scratch");
+    // Overridable (Scratch__Dir / SCRATCH_DIR) so the scratch pad can live wherever you keep
+    // work — and so a demo instance can point it somewhere disposable.
+    var configured = cfg["Scratch:Dir"];
+    var cwd = !string.IsNullOrWhiteSpace(configured)
+        ? Path.GetFullPath(configured)
+        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "claudedash-scratch");
     Directory.CreateDirectory(cwd);
     return Results.Ok(new { cwd, workspaceId = ClaudeDataService.EncodeWorkspaceId(cwd) });
 });

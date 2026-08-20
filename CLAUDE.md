@@ -31,7 +31,8 @@ exists: `npm ci` deletes the tree first, which fails while the dev server holds 
 
 If you need to restart the backend alone: `Get-Process -Name ClaudeDash.Api | Stop-Process -Force` then `dotnet run --urls http://localhost:7341` from `backend\ClaudeDash.Api`. Manual `dotnet run` does **not** load `.env` — use `start.ps1` (or replicate its env-var mapping) to get Jira creds.
 
-`.env` keys: `CLAUDE_HOME`, `JIRA_DOMAIN`, `JIRA_EMAIL`, `JIRA_API_TOKEN`. Backend maps them to `ClaudeDash__ClaudeHome`, `Jira__Domain`, etc.
+`.env` keys: `CLAUDE_HOME`, `JIRA_DOMAIN`, `JIRA_EMAIL`, `JIRA_API_TOKEN`,
+`JIRA_STATUS_LADDER`, `SCRATCH_DIR`. Backend maps them to `ClaudeDash__ClaudeHome`, `Jira__Domain`, etc.
 
 ## Layout
 
@@ -219,7 +220,8 @@ older", and a tracked session is exempt from that too.
 button) that always lands in the *same* conversation, so quick questions never create rows
 in the session list:
 
-- `GET /api/scratch` creates `%USERPROFILE%\claudedash-scratch` and returns
+- `GET /api/scratch` creates the scratch directory (`SCRATCH_DIR` / `Scratch__Dir`, defaulting
+  to `%USERPROFILE%\claudedash-scratch`) and returns
   `{ cwd, workspaceId }`. The workspace id comes from `ClaudeDataService.EncodeWorkspaceId`,
   which mirrors Claude Code's own folder naming (every non-alphanumeric character becomes a
   dash: `C:\Users\jane.doe` → `C--Users-jane-doe`).

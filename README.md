@@ -42,18 +42,55 @@ checkouts still shows the right diffs.
 
 ![Changes tab](docs/changes.png)
 
-**Scratch pad.** One always-on session for quick questions, in a floating window, always the
-same conversation — so throwaway chatter never turns into another row in your session list.
+### Scratch pad
+
+A throwaway session in a floating window, for everything that isn't really work: how does this
+flag behave, what's the syntax for that, is this regex right, explain this error. It always
+returns to the *same* conversation, so those questions never turn into rows in your session
+list — and because it lives in its own directory, it never touches a project.
+
+Hit `S` from anywhere to open or hide it. Closing the window only hides it: the conversation
+keeps running in the background, so you can duck out and come back mid-answer. When the context
+has drifted somewhere unhelpful, `/clear` inside it starts fresh — that is the whole appeal of
+a session you don't have to care about.
+
+![Scratch pad](docs/scratch.png)
+
+It lives in `%USERPROFILE%\claudedash-scratch` by default; set `SCRATCH_DIR` to put it
+somewhere else.
 
 **Jira and PR context** (optional). If a session's branch, prompt or path mentions an issue
 key, its Jira card shows up as a tab with one-click status transitions. If the branch has a
 pull request, `gh` supplies a PR tab.
 
-**Keyboard-first.** `J`/`K` move through the list, `1`–`5` switch tabs, `T` resumes a terminal,
-`/` searches, `N` starts a session, `S` opens the scratch pad, `?` shows everything. Key badges
-sit next to their controls; hold `Alt` and they all light up. Every shortcut also works as
-`Alt` + the same key, which is what you use while a terminal has focus — and `Alt+I` moves the
-keyboard into the terminal and back out again.
+### Keyboard
+
+The whole dashboard is drivable without the mouse.
+
+| | |
+|---|---|
+| `J` `K` / `↓` `↑` | next / previous session, in the order shown (groups and filters respected) |
+| `1` … `5` | Transcript, Changes, Terminal, Jira, PR |
+| `T` | resume this session in a terminal, or jump to the one already running |
+| `I` | put the keyboard *in* the terminal — press again to hand it back |
+| `P` `X` | pin, hide |
+| `/` | search the session list (`Esc` leaves the box) |
+| `N` `S` | new session, scratch pad |
+| `?` | the full list |
+
+**Two tiers, and the second one matters.** Bare keys work whenever you are not typing — and
+since xterm's input is a `<textarea>`, typing in a terminal never triggers a shortcut by
+accident. Every shortcut *also* works as **`Alt` + the same key**, which is what you use while a
+terminal has the keyboard. `Alt+I` is the way out (and back in), and the header always says
+where keystrokes are going: `app`, `terminal`, or `scratch`. The pane holding the keyboard is
+outlined, so with a session terminal and the scratch window both open it is obvious which one
+you are typing into.
+
+Nothing is bound to `Ctrl` or `Cmd`, so browser shortcuts keep working, and the `Alt` combos the
+browser claims (`Alt+D`, `Alt+←`, …) are left alone.
+
+**Discovery without clutter:** every shortcut has a small key badge next to its control. Hold
+`Alt` and they all light up at once; `?` opens the full map.
 
 ![Keyboard shortcuts](docs/shortcuts.png)
 
@@ -107,6 +144,7 @@ All optional — with an empty `.env` the dashboard still lists sessions, diffs 
 | `JIRA_EMAIL` | Cloud: your account email (Basic auth with the API token). Server/DC: usually ignored. |
 | `JIRA_API_TOKEN` | Cloud: an API token. Server/DC: a personal access token. |
 | `JIRA_STATUS_LADDER` | Your workflow's statuses in order, comma-separated. Drives the transition buttons. |
+| `SCRATCH_DIR` | Where the scratch pad's conversation lives. Defaults to `%USERPROFILE%\claudedash-scratch`. |
 
 ## How it works
 
