@@ -15,8 +15,12 @@
 ```powershell
 git clone <your-fork-url> claudedash
 cd claudedash
-Copy-Item .env.example .env
+.\setup.ps1
 ```
+
+`setup.ps1` verifies the prerequisites above, creates `.env` from the example if it is missing,
+restores NuGet and npm packages, and builds once. It is idempotent — re-run it any time a
+checkout looks broken. `-SkipBuild` restores without compiling.
 
 `.env` is only needed for the Jira tab — everything else works with it empty or absent. It is
 gitignored; `.env.example` documents every key.
@@ -48,7 +52,17 @@ SSO gateway — connect the VPN it expects.
 | Dashboard | http://localhost:7342 | Vite dev server; proxies `/api`, `/hub`, `/ws` to the backend |
 | Backend | http://localhost:7341 | .NET + Kestrel + SignalR |
 
-Ctrl+C stops both. First run restores NuGet and npm packages, so give it a minute.
+Ctrl+C stops both. The dev servers compile on the fly, so `start.ps1` is all you need while
+working; `build.ps1` is for a full type-check and production bundle:
+
+```powershell
+.uild.ps1                      # Debug backend + frontend bundle
+.uild.ps1 -Release             # Release backend
+.uild.ps1 -Clean -StopRunning  # wipe bin/obj/dist, and stop a running backend first
+```
+
+A running backend holds `ClaudeDash.Api.exe`, so a Debug build fails with MSB3027 unless you
+pass `-StopRunning` — which also closes every terminal that backend is hosting.
 
 Running the backend on its own is possible but **does not load `.env`**:
 

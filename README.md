@@ -80,14 +80,18 @@ first thing you want to give up.
 ```powershell
 git clone <your-fork-url> claudedash
 cd claudedash
-Copy-Item .env.example .env      # optional — only needed for the Jira tab
-.\start.ps1
+.\setup.ps1      # checks prerequisites, creates .env, restores packages, builds once
+.\start.ps1      # runs it
 ```
 
 Then open **http://localhost:7342**.
 
-`start.ps1` loads `.env`, starts the backend on 7341 and the Vite dev server on 7342, and
-stops both on Ctrl+C.
+| Script | What it does |
+|---|---|
+| `setup.ps1` | First-time setup. Idempotent, so it is also the "fix my checkout" button. `-SkipBuild` to only restore. |
+| `build.ps1` | Builds backend + frontend. `-Release`, `-Clean`, and `-StopRunning` (a running backend holds its own binary). |
+| `start.ps1` | Loads `.env` and runs both dev servers with hot reload; Ctrl+C stops both. |
+| `install-startup.ps1` | Adds (or `-Remove`s) a Startup-folder shortcut so it runs hidden at login. |
 
 See **[docs/INSTALL.md](docs/INSTALL.md)** for configuration, running it at login, and
 troubleshooting.

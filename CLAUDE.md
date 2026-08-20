@@ -18,6 +18,12 @@ cd D:\Projects\ArtificialAssistant
 
 `start.ps1` loads `.env`, then runs `dotnet run` (backend) and `npm run dev` (Vite) side by side. Ctrl+C stops both.
 
+`setup.ps1` is the fresh-clone path (prerequisite checks, `.env`, restore, one build) and is
+idempotent. `build.ps1` builds both halves — `-Release`, `-Clean`, and `-StopRunning`, the last
+because a running backend holds its own binary and the build fails with MSB3027 otherwise.
+`setup.ps1` deliberately prefers `npm install` over `npm ci` when `node_modules` already
+exists: `npm ci` deletes the tree first, which fails while the dev server holds `esbuild.exe`.
+
 | Service  | URL                       | Notes |
 |----------|---------------------------|-------|
 | Frontend | http://localhost:7342     | Vite dev server. Proxies `/api`, `/hub`, `/ws` to backend. |
@@ -73,6 +79,9 @@ frontend/                      Vite + React 19 + TanStack Query + Tailwind
   src/hooks/                   useChangeFeed (SignalR), useChime, useSessionName, useHotkeys
 .mcp.json                      Project-scoped MCP servers
 start.ps1                      Dev launcher
+setup.ps1                      Fresh-clone setup (idempotent)
+build.ps1                      Build both halves
+install-startup.ps1            Startup-folder shortcut (hidden launch via start-hidden.vbs)
 ```
 
 ## Theming (glass tiles)
