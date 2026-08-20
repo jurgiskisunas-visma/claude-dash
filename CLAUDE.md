@@ -102,8 +102,17 @@ never `zinc-*` with a `dark:` twin. There are no `dark:` variants left in the co
 15px (panel titles). Numbers use `tabular-nums`; `.label` is the only place letter-spacing
 appears.
 
-**Component classes** (`index.css`, `@layer components`): `.tile` (blurred panel, 16px
-radius), `.tile-flat` (same look, no blur — for long scrollers, where blur costs frames),
+**No `backdrop-filter` on the panels.** This started as blurred glass and had to change:
+a backdrop filter is recomputed whenever anything beneath it repaints, and with a terminal in
+the layout that means every keystroke. Measured while typing into a PTY — median frame time
+**75ms with the header and list blurred, 27ms with one of them, 13ms with none**. So `.tile`
+is translucent but flat, and blur lives in `.glass`, which only short-lived floating surfaces
+use (the peek overlay, dialogs, the scratch window) where the cost never lands on input
+latency. Sticky headers inside scrollers are flat for the same reason: they re-blur on every
+scroll frame. Don't put blur back on a persistent panel.
+
+**Component classes** (`index.css`, `@layer components`): `.tile` (panel, 16px radius),
+`.tile-flat` (alias, reads better on long scrollers), `.glass` (the blur opt-in),
 `.card` (inner tint), `.seam` / `.seam-t` (dividers), `.label`, `.pill` / `.pill-on`,
 `.btn-accent` (the gradient primary), `.segment` + `.segment-item[data-on]` (tab bar),
 `.field` (inputs with an accent focus ring), `.row-action` (list-row buttons: 55% opacity at

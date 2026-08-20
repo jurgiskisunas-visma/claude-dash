@@ -70,7 +70,7 @@ export function ChangesView({ session }: Props) {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="px-6 py-3 border-b border-hairline bg-gradient-to-r from-violet-100/50 dark:from-violet-950/20 via-transparent to-transparent flex items-center gap-3 flex-wrap text-xs sticky top-0 backdrop-blur-sm z-10">
+      <div className="px-6 py-3 border-b border-hairline bg-gradient-to-r from-violet-100/50 dark:from-violet-950/20 via-transparent to-transparent flex items-center gap-3 flex-wrap text-xs sticky top-0 bg-surface-solid z-10">
         {multiRepo ? (
           <span className="text-fg-muted">
             <span className="text-fg-muted">📦 {repos.length} repo{repos.length === 1 ? "" : "s"} in</span>{" "}

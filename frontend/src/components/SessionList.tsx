@@ -386,7 +386,7 @@ export function SessionList({
         {peeking && (
           <div
             className={clsx(
-              "tile absolute left-0 top-0 h-full z-30 flex flex-col shadow-pop",
+              "tile glass absolute left-0 top-0 h-full z-30 flex flex-col shadow-pop",
               leaving ? "peek-out" : "peek-in",
             )}
             style={{ width: `${Math.max(width, 360)}px` }}
@@ -526,7 +526,8 @@ function formatRelative(iso: string): string {
 function GroupHeader({ label, tone, count }: { label: string; tone: "sky" | "zinc" | "amber"; count: number }) {
   const dot = { sky: "bg-sky-400", amber: "bg-amber-400", zinc: "bg-fg-dim" }[tone];
   return (
-    <div className="sticky top-0 z-10 flex items-center gap-2 px-3.5 pt-3 pb-1.5 bg-surface backdrop-blur-xl">
+    // No blur here: a sticky element inside a scroller re-blurs on every scroll frame.
+    <div className="sticky top-0 z-10 flex items-center gap-2 px-3.5 pt-3 pb-1.5 bg-surface-solid">
       <span className={clsx("w-1 h-1 rounded-full", dot)} />
       <span className="label">{label}</span>
       <span className="text-2xs text-fg-dim tabular-nums ml-auto">{count}</span>

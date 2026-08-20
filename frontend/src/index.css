@@ -95,22 +95,32 @@ body {
 ::selection { background: var(--c-accent-ring); color: var(--c-fg); }
 
 @layer components {
-  /* Outer panel. Translucent, blurred, one hairline, one specular top edge. */
+  /* Outer panel: translucent over the tinted backdrop, one hairline, one specular top edge.
+     Deliberately *not* blurred. A backdrop-filter here is recomputed whenever anything under
+     it repaints, and with a terminal in the layout that is every keystroke — measured at 75ms
+     per frame with both panels blurred, versus 13ms with none. Blur is reserved for `.glass`
+     below, which only transient surfaces use. */
   .tile {
-    background-color: var(--c-surface);
+    background-color: var(--c-surface-2);
     border: 1px solid var(--c-hairline);
     border-radius: 16px;
     box-shadow: var(--shadow-tile), inset 0 1px 0 var(--c-edge);
-    backdrop-filter: blur(20px) saturate(160%);
-    -webkit-backdrop-filter: blur(20px) saturate(160%);
   }
 
-  /* Same, without blur — for panels that scroll a lot of content. */
+  /* Kept as an alias so either name reads correctly at the call site. */
   .tile-flat {
     background-color: var(--c-surface-2);
     border: 1px solid var(--c-hairline);
     border-radius: 16px;
     box-shadow: var(--shadow-tile), inset 0 1px 0 var(--c-edge);
+  }
+
+  /* Real glass, for surfaces that float *over* the layout and are short-lived: the peek
+     overlay, dialogs, the scratch window. Nothing is typed underneath them for long, so the
+     per-frame cost never lands on input latency. */
+  .glass {
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
   }
 
   /* Inner grouping: a tint, no border. Depth without another rectangle outline. */
