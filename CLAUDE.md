@@ -178,8 +178,14 @@ The header carries a row of small cubes — one per session the user is actively
 (`ActiveWorkBar.tsx`, state in `src/lib/activeWork.ts`, localStorage key
 `claudedash:active-work`). A session joins the strip automatically when it is live or when
 the user opens it; it leaves only when the user clicks the cube's ×. Closing records the id
-in a `dismissed` list so the auto-add rule doesn't immediately re-add it — `forceTrackSession`
-clears that dismissal if a session needs to come back. The cube's dot mirrors the backend
+in a `dismissed` list so the auto-add rule doesn't immediately re-add it.
+
+**Opening a terminal overrides a dismissal** — launching one is a deliberate act, so
+`forceTrackSession` clears the dismissal and the cube comes back. That fires on the
+*transition* (a `useRef` set of ids that already had a terminal), not on every render, because
+re-applying it continuously would make the cube's × do nothing while the terminal stayed open.
+Only ids that exist in `visibleSessions` are tracked, which keeps the scratch pad and
+not-yet-promoted launch keys out of the strip. The cube's dot mirrors the backend
 session status (amber = working, rose = awaiting input, emerald = done).
 
 `SessionList` mirrors that state: tracked sessions float to the top of their group (in cube
@@ -366,16 +372,18 @@ confirmed — several agents in one repo is the point of the tool.
 Two tiers, both defined in one table (`src/lib/shortcuts.ts`):
 
 - **Bare keys** — `j`/`k` (or ↓/↑) move through the list in *rendered* order, `1`–`5` pick a
-  tab, `t` resumes/focuses the terminal, `p` pins, `x` hides, `/` focuses search, `n` new
-  session, `s` scratch pad, `?` the shortcut list, `Esc` closes things. Ignored while typing —
+  tab, `t` resumes/focuses the terminal, `i` toggles terminal focus, `p` pins, `x` hides,
+  `/` focuses search, `n` new session, `s` scratch pad, `?` the shortcut list, `Esc` closes
+  things. Ignored while typing —
   and xterm's helper element is a `<textarea>`, so typing in a PTY never fires one.
 - **Alt + the same key** does the same thing and works *everywhere, including inside the
   terminal*. `useHotkeys` listens in the **capture phase** and `preventDefault`s, so xterm
   never sees the combo.
-- **`Alt+B` hands the keyboard back** (blurs the focused element) so the bare keys work again.
-  The terminal pane's header says which mode it is in — "keys go to the shell · Alt+B to
-  leave" versus "click to type" — driven by focus/blur on xterm's helper textarea, since
-  xterm exposes no focus events of its own.
+- **`Alt+I` toggles terminal focus both ways**: inside a terminal it blurs, so the bare keys
+  work again; outside, it focuses the terminal — the last helper textarea in the document,
+  which is the scratch window whenever that is open. The pane header states the current mode
+  ("keys go to the shell · Alt+I to leave" versus "Alt+I or click to type"), driven by
+  focus/blur on xterm's helper textarea, since xterm exposes no focus events of its own.
 
 The terminal only grabs focus when the user actually asked for it: `SessionDetail` tracks
 whether the current tab was chosen by hand and passes that as `autoFocus`. Otherwise

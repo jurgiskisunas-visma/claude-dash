@@ -243,11 +243,14 @@ export function TerminalPane({ termKey, wsUrl, autoFocus = true }: Props) {
           {typing ? (
             <>
               <span>keys go to the shell</span>
-              <Kbd>Alt+B</Kbd>
+              <Kbd>Alt+I</Kbd>
               <span className="opacity-70">to leave</span>
             </>
           ) : (
-            <span className="opacity-70">click to type</span>
+            <>
+              <Kbd>Alt+I</Kbd>
+              <span className="opacity-70">or click to type</span>
+            </>
           )}
         </span>
       </div>

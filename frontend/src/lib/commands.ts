@@ -16,7 +16,7 @@ export type Command =
   | "tab.jira"
   | "tab.pr"
   | "terminal.toggle"
-  | "focus.release"
+  | "terminal.focus.toggle"
   | "list.search"
   | "session.pin"
   | "session.hide"

@@ -15,7 +15,7 @@ import { subscribeCommands, type Command } from "./lib/commands";
 import { togglePin } from "./lib/pinnedSessions";
 import { hideSession, isHidden, unhideSession } from "./lib/hiddenSessions";
 import { ScratchTerminal } from "./components/ScratchTerminal";
-import { trackSession } from "./lib/activeWork";
+import { forceTrackSession, trackSession } from "./lib/activeWork";
 import { rememberPath } from "./lib/recentPaths";
 import { ensureTerminal, listKeys, makeKey, renameTerminal, restoreFromServer, subscribeToList } from "./terminalStore";
 import { getSnapshot as getNameSnapshot, tryClaimPendingName } from "./lib/sessionNames";
@@ -122,11 +122,20 @@ export default function App() {
           else hideSession(sessionId);
         }
         break;
-      case "focus.release":
-        // Hands the keyboard back to the app so the bare-key shortcuts work again. Alt+B is
-        // the one that matters, since a bare `b` inside a PTY goes to the shell.
-        (document.activeElement as HTMLElement | null)?.blur();
+      case "terminal.focus.toggle": {
+        // One key both ways. Inside a terminal it hands the keyboard back so the bare-key
+        // shortcuts work again; outside, it puts the cursor in the terminal. The last helper
+        // textarea in the document wins, which is the scratch window when it is open — the
+        // floating one is what you are looking at.
+        const active = document.activeElement as HTMLElement | null;
+        if (active?.closest(".xterm")) {
+          active.blur();
+        } else {
+          const panes = document.querySelectorAll<HTMLTextAreaElement>(".xterm-helper-textarea");
+          panes[panes.length - 1]?.focus();
+        }
         break;
+      }
       case "escape":
         setShowHelp(false);
         setShowNewSession(false);
@@ -227,6 +236,23 @@ export default function App() {
       trackSession(sessionId);
     }
   }, [sessionId, visibleSessions]);
+
+  // Opening a terminal is a deliberate act, so it re-adds the session even if its cube was
+  // closed earlier. Only on the transition, though: re-applying it on every render would make
+  // the cube's × do nothing for as long as the terminal stayed open. Restricted to ids that
+  // are real sessions, which keeps the scratch pad and unpromoted launch keys out of the strip.
+  const seenTerminalIds = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const known = seenTerminalIds.current;
+    for (const id of terminalSessionIds) {
+      if (known.has(id)) continue;
+      known.add(id);
+      if (visibleSessions.some((s) => s.sessionId === id)) forceTrackSession(id);
+    }
+    for (const id of [...known]) {
+      if (!terminalSessionIds.has(id)) known.delete(id);
+    }
+  }, [terminalSessionIds, visibleSessions]);
 
   // Promote the user to the new session's panel when its JSONL first arrives.
   // Give up after 60s.

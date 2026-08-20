@@ -52,8 +52,8 @@ pull request, `gh` supplies a PR tab.
 **Keyboard-first.** `J`/`K` move through the list, `1`–`5` switch tabs, `T` resumes a terminal,
 `/` searches, `N` starts a session, `S` opens the scratch pad, `?` shows everything. Key badges
 sit next to their controls; hold `Alt` and they all light up. Every shortcut also works as
-`Alt` + the same key, which is what you use while a terminal has focus — and `Alt+B` hands the
-keyboard back to the app.
+`Alt` + the same key, which is what you use while a terminal has focus — and `Alt+I` moves the
+keyboard into the terminal and back out again.
 
 ![Keyboard shortcuts](docs/shortcuts.png)
 

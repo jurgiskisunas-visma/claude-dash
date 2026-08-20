@@ -43,7 +43,7 @@ export const SHORTCUTS: Shortcut[] = [
   { key: "5", label: "5", command: "tab.pr", group: "View", description: "Pull request (when one exists)" },
 
   { key: "t", label: "T", command: "terminal.toggle", group: "Session", description: "Resume in terminal / focus it" },
-  { key: "b", label: "B", command: "focus.release", group: "Session", description: "Leave the terminal — release the keyboard back to the app" },
+  { key: "i", label: "I", command: "terminal.focus.toggle", group: "Session", description: "Type in the terminal / hand the keyboard back" },
   { key: "p", label: "P", command: "session.pin", group: "Session", description: "Pin or unpin" },
   { key: "x", label: "X", command: "session.hide", group: "Session", description: "Hide from the list (reversible)" },
 
