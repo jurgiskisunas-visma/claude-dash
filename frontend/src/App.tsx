@@ -17,6 +17,14 @@ import { hideSession, isHidden, unhideSession } from "./lib/hiddenSessions";
 import { ScratchTerminal } from "./components/ScratchTerminal";
 import { forceTrackSession, trackSession } from "./lib/activeWork";
 import { rememberPath } from "./lib/recentPaths";
+import {
+  focusTerminal,
+  getFocusScope,
+  isTerminalFocused,
+  releaseTerminalFocus,
+  subscribeFocusScope,
+  trackTerminalFocus,
+} from "./lib/terminalFocus";
 import { ensureTerminal, listKeys, makeKey, renameTerminal, restoreFromServer, subscribeToList } from "./terminalStore";
 import { getSnapshot as getNameSnapshot, tryClaimPendingName } from "./lib/sessionNames";
 import { cycleTheme, getThemeMode, subscribeTheme } from "./lib/theme";
@@ -102,6 +110,8 @@ export default function App() {
 
   // Global keyboard map. Bare keys when not typing, Alt+key everywhere — see lib/shortcuts.
   useHotkeys();
+  useEffect(trackTerminalFocus, []);
+  const focusScope = useSyncExternalStore(subscribeFocusScope, getFocusScope);
   useEffect(() => subscribeCommands((cmd: Command) => {
     switch (cmd) {
       case "session.new":
@@ -122,20 +132,11 @@ export default function App() {
           else hideSession(sessionId);
         }
         break;
-      case "terminal.focus.toggle": {
-        // One key both ways. Inside a terminal it hands the keyboard back so the bare-key
-        // shortcuts work again; outside, it puts the cursor in the terminal. The last helper
-        // textarea in the document wins, which is the scratch window when it is open — the
-        // floating one is what you are looking at.
-        const active = document.activeElement as HTMLElement | null;
-        if (active?.closest(".xterm")) {
-          active.blur();
-        } else {
-          const panes = document.querySelectorAll<HTMLTextAreaElement>(".xterm-helper-textarea");
-          panes[panes.length - 1]?.focus();
-        }
+      case "terminal.focus.toggle":
+        // One key both ways: out of a terminal, or back into the one last used.
+        if (isTerminalFocused()) releaseTerminalFocus();
+        else focusTerminal();
         break;
-      }
       case "escape":
         setShowHelp(false);
         setShowNewSession(false);
@@ -346,7 +347,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col h-full gap-2 p-2 text-fg">
+    <div id="app-root" tabIndex={-1} className="flex flex-col h-full gap-2 p-2 text-fg outline-none">
       <header className="tile relative flex items-center shrink-0 pl-3 pr-2.5 py-2 gap-3">
         <div className="flex items-center gap-2.5 shrink-0">
           <span
@@ -375,6 +376,22 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-1.5 text-xs shrink-0">
+          {/* Where the keystrokes are going — and a click does the same as Alt+I. */}
+          <button
+            onClick={() => (isTerminalFocused() ? releaseTerminalFocus() : focusTerminal())}
+            title={focusScope === "app"
+              ? "Keys go to the dashboard. Click (or Alt+I) to type in the terminal."
+              : `Keys go to the ${focusScope} terminal. Click (or Alt+I) to hand them back.`}
+            className={clsx("press flex items-center gap-1.5 px-2.5 py-1",
+              focusScope === "app" ? "pill" : "pill pill-on")}
+          >
+            <span className={clsx(
+              "w-1.5 h-1.5 rounded-full",
+              focusScope === "app" ? "bg-fg-dim" : "bg-emerald-400",
+            )} />
+            {focusScope === "app" ? "app" : focusScope === "scratch" ? "scratch" : "terminal"}
+            <Kbd>Alt+I</Kbd>
+          </button>
           <button
             onClick={() => setScratchOpen((v) => !v)}
             title="Scratch pad — one always-on claude session for quick questions. Never enters the session list."

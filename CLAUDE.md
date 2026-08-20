@@ -65,6 +65,7 @@ frontend/                      Vite + React 19 + TanStack Query + Tailwind
   src/lib/activeWork.ts        Active-work cube strip: ordered ids + dismissed set (localStorage)
   src/lib/recentPaths.ts       Last 10 session directories (localStorage)
   src/lib/commands.ts          Command pub/sub (keyboard → whoever owns the state)
+  src/lib/terminalFocus.ts     Which surface owns the keyboard, and how to move it
   src/lib/shortcuts.ts         Shortcut table + Alt-held "hint mode" store
   src/components/Kbd.tsx       Recessive key badge
   src/components/Segmented.tsx Segmented control with a sliding indicator
@@ -395,11 +396,21 @@ Two tiers, both defined in one table (`src/lib/shortcuts.ts`):
 - **Alt + the same key** does the same thing and works *everywhere, including inside the
   terminal*. `useHotkeys` listens in the **capture phase** and `preventDefault`s, so xterm
   never sees the combo.
-- **`Alt+I` toggles terminal focus both ways**: inside a terminal it blurs, so the bare keys
-  work again; outside, it focuses the terminal — the last helper textarea in the document,
-  which is the scratch window whenever that is open. The pane header states the current mode
-  ("keys go to the shell · Alt+I to leave" versus "Alt+I or click to type"), driven by
-  focus/blur on xterm's helper textarea, since xterm exposes no focus events of its own.
+- **`Alt+I` toggles terminal focus both ways**: inside a terminal it hands the keyboard back,
+  outside it returns to the terminal **last used** — tracked in `src/lib/terminalFocus.ts`,
+  because "the last pane in the DOM" made a session's own terminal unreachable while the
+  scratch window was open. Panes declare themselves with `data-terminal-scope="session|scratch"`
+  so a command can target one; `t` calls `focusTerminalWhenReady("session")`, since switching to
+  a tab that is already showing remounts nothing and the pane's `autoFocus` would never run.
+
+  **Two things show where the keyboard is**: a header pill (`app` / `terminal` / `scratch`, with
+  a dot, and clicking it does the same as `Alt+I`), and an accent inset ring on whichever pane
+  owns the keys. Both come from the focus store; xterm exposes no focus events, so it is driven
+  by focus/blur on its helper textarea.
+
+  Releasing focus parks it on `#app-root` (`tabIndex={-1}`), never on a bare `<body>`, and
+  `useHotkeys` swallows the `Alt` **keyup** after an Alt combo — Chrome treats a bare Alt press
+  as "focus the menu bar", which silently takes the keyboard away from the page.
 
 The terminal only grabs focus when the user actually asked for it: `SessionDetail` tracks
 whether the current tab was chosen by hand and passes that as `autoFocus`. Otherwise

@@ -22,6 +22,7 @@ import { usePinned } from "../hooks/usePinned";
 import { Kbd } from "./Kbd";
 import { Segmented } from "./Segmented";
 import { subscribeCommands, type Command } from "../lib/commands";
+import { focusTerminalWhenReady } from "../lib/terminalFocus";
 
 type Tab = "transcript" | "terminal" | "changes" | "pr" | "jira";
 
@@ -133,6 +134,9 @@ export function SessionDetail({ session, terminalEnabled }: Props) {
       case "terminal.toggle":
         go("terminal");
         if (!hasActive && terminalEnabled) launch();
+        // Also focus it: if the Terminal tab was already showing, nothing remounts and the
+        // pane's own autoFocus never runs, so `t` would look like it did nothing.
+        focusTerminalWhenReady("session");
         break;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -165,7 +169,7 @@ export function SessionDetail({ session, terminalEnabled }: Props) {
         {tab === "jira" && <JiraDetailView jiraKeys={session.jiraKeys} />}
         {tab === "terminal" && (
           hasActive
-            ? <TerminalPane termKey={activeKey} wsUrl={wsUrl} autoFocus={tabChosenByUser} />
+            ? <TerminalPane termKey={activeKey} wsUrl={wsUrl} autoFocus={tabChosenByUser} scope="session" />
             : restoring
             ? <TerminalReconnecting />
             : <TerminalLauncher

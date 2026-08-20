@@ -22,6 +22,12 @@ function isTyping(target: EventTarget | null): boolean {
  */
 export function useHotkeys(): void {
   useEffect(() => {
+    // Set when we consume an Alt combo, so the matching Alt *keyup* can be swallowed too.
+    // Chrome treats a bare Alt press-and-release as "focus the menu bar", which takes the
+    // keyboard away from the page entirely — after that no shortcut works and the only way
+    // back is a mouse click.
+    let handledAltCombo = false;
+
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.altKey) setHinting(true);
 
@@ -41,6 +47,7 @@ export function useHotkeys(): void {
       const cmd = commandForKey(e.key, alt);
       if (!cmd) return;
 
+      if (alt) handledAltCombo = true;
       e.preventDefault();
       e.stopPropagation();
       dispatch(cmd);
@@ -48,6 +55,11 @@ export function useHotkeys(): void {
 
     const onKeyUp = (e: KeyboardEvent) => {
       if (!e.altKey) setHinting(false);
+      if (e.key === "Alt" && handledAltCombo) {
+        handledAltCombo = false;
+        e.preventDefault();      // keep Chrome's menu bar out of it
+        e.stopPropagation();
+      }
     };
     const clearHints = () => setHinting(false);
 

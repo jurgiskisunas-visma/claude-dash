@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import clsx from "clsx";
 import { Terminal, type ITheme } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
@@ -11,12 +12,15 @@ import {
 } from "../terminalStore";
 import { getTheme, subscribeTheme, type Theme } from "../lib/theme";
 import { Kbd } from "./Kbd";
+import type { FocusScope } from "../lib/terminalFocus";
 
 interface Props {
   termKey: TermKey;
   wsUrl: string;
   /** Grab keyboard focus on mount. Default true. */
   autoFocus?: boolean;
+  /** Which pane this is, so focus commands can target it. See lib/terminalFocus. */
+  scope?: Exclude<FocusScope, "app">;
 }
 
 // Matched to the app's glass surfaces (see index.css tokens) with a Rider-ish
@@ -70,7 +74,7 @@ const XTERM_THEMES: Record<Theme, ITheme> = {
   },
 };
 
-export function TerminalPane({ termKey, wsUrl, autoFocus = true }: Props) {
+export function TerminalPane({ termKey, wsUrl, autoFocus = true, scope = "session" }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const [status, setStatus] = useState<TermStatus>("connecting");
@@ -229,7 +233,13 @@ export function TerminalPane({ termKey, wsUrl, autoFocus = true }: Props) {
   }, [termKey, wsUrl, autoFocus]);
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-surface-solid">
+    <div
+      data-terminal-scope={scope}
+      className={clsx(
+        "flex-1 flex flex-col min-h-0 bg-surface-solid transition-shadow",
+        typing && "ring-1 ring-inset ring-accent-ring",
+      )}
+    >
       <div className="px-3 py-1 text-[10px] text-fg-dim seam flex items-center gap-2 font-mono">
         <span className={
           status === "open" ? "text-emerald-500 dark:text-emerald-400" :

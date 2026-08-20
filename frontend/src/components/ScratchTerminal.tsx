@@ -92,7 +92,7 @@ export function ScratchTerminal({ scratch, open, onClose }: Props) {
           ×
         </button>
       </div>
-      <TerminalPane termKey={termKey} wsUrl={wsUrl} />
+      <TerminalPane termKey={termKey} wsUrl={wsUrl} scope="scratch" />
     </div>
   );
 }
