@@ -368,7 +368,22 @@ wrong for every other machine. Three ways to fill it in:
   dialog (PowerShell + WinForms `FolderBrowserDialog` on an `-STA` thread) and returns the
   absolute path. This exists because the browser *cannot* provide one: the File System Access
   API hands back a directory handle with no path, and `webkitdirectory` gives only relative
-  paths. Windows-only; the endpoint returns `{ path: null }` elsewhere or on cancel.
+  paths. Windows-only; the response is `{ path, error }` where a null path with no error means
+  the user cancelled.
+
+  Three details were needed to make it actually usable, all learned the hard way:
+
+  1. **An invisible owner window.** Without an owner the dialog opens *behind* the browser and
+     the button looks dead while a PowerShell process waits forever. The owner is `TopMost`, so
+     the dialog is drawn on top even though Windows won't hand it focus from another app.
+  2. **Placed at the mouse cursor**, with the focused window as fallback and the primary screen
+     last. `CenterScreen` put it on a monitor the user wasn't looking at — on a multi-monitor
+     layout with negative coordinates it landed at (-909, 1286), i.e. nowhere near the click.
+     The dialog process also calls `SetProcessDPIAware()`, or form coordinates (logical units)
+     drift from `GetCursorPos` (physical pixels) by the display scaling factor.
+  3. **A second request takes over.** The service tracks the open dialog process and kills it
+     before opening a new one. The earlier "one at a time" guard meant a dialog the user never
+     saw wedged the Browse button until the backend restarted.
 - **Recent** capsules — the last 10 directories you actually started in
   (`src/lib/recentPaths.ts`, localStorage). Click fills the field, double-click starts.
 - **Known workspaces** — from `/api/workspaces`, minus anything already in Recent.

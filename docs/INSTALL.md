@@ -121,6 +121,11 @@ tabs, but not a backend restart: the pseudo-console handles die with the host pr
 **The Jira tab says it failed to load** — see the credential notes in step 2. The backend log
 prints the redirect target when an SSO gateway intercepts the API call.
 
+**Browse… doesn't seem to open anything** — the dialog opens at your mouse pointer on the
+machine running the backend, and Windows will not let it steal focus from another application,
+so it can be sitting behind the window you are looking at. Clicking Browse again closes the old
+dialog and opens a fresh one at the current pointer position.
+
 **Empty diff in the Changes tab** — the diff is taken against the merge base with
 `origin/master`, `origin/main`, `master`, `main`, or `HEAD~1`, whichever exists first. A repo
 with no commits, or a session whose working directory isn't a repo, has nothing to show.

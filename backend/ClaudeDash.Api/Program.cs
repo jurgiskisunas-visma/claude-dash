@@ -62,8 +62,8 @@ app.MapGet("/api/health", (ClaudeDataService d, JiraService j, IConfiguration cf
 // on the same machine as the UI, so it opens the real dialog. Returns null path on cancel.
 app.MapPost("/api/pick-folder", async (FolderPickerService picker, string? start, CancellationToken ct) =>
 {
-    var picked = await picker.PickAsync(string.IsNullOrWhiteSpace(start) ? null : start, ct);
-    return Results.Ok(new { path = picked });
+    var result = await picker.PickAsync(string.IsNullOrWhiteSpace(start) ? null : start, ct);
+    return Results.Ok(new { path = result.Path, error = result.Error });
 });
 
 // Scratch pad: a dedicated cwd for the always-on popup terminal. Its sessions are

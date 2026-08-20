@@ -88,7 +88,9 @@ export const api = {
     const qs = start ? `?start=${encodeURIComponent(start)}` : "";
     const r = await fetch(`/api/pick-folder${qs}`, { method: "POST" });
     if (!r.ok) throw new Error(`Folder picker failed (${r.status})`);
-    const data = await r.json() as { path: string | null };
+    const data = await r.json() as { path: string | null; error?: string | null };
+    // A null path with no error is a plain cancel, which is not worth reporting.
+    if (data.error) throw new Error(data.error);
     return data.path ?? null;
   },
 

@@ -99,7 +99,7 @@ export function NewSessionModal({ onCancel, onStart }: Props) {
             </div>
             {picking && (
               <span className="text-xs text-fg-dim mt-1.5 block">
-                The folder dialog is open on your desktop — it may be behind this window.
+                The folder dialog is open at your mouse pointer. Clicking Browse again reopens it.
               </span>
             )}
             {pickError && (
