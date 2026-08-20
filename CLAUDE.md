@@ -205,7 +205,14 @@ in a `dismissed` list so the auto-add rule doesn't immediately re-add it.
 *transition* (a `useRef` set of ids that already had a terminal), not on every render, because
 re-applying it continuously would make the cube's × do nothing while the terminal stayed open.
 Only ids that exist in `visibleSessions` are tracked, which keeps the scratch pad and
-not-yet-promoted launch keys out of the strip. The cube's dot mirrors the backend
+not-yet-promoted launch keys out of the strip.
+
+The strip is persisted, so it also **prunes on load** — the auto-add effects wait for
+`/api/scratch` (before it resolves, `visibleSessions` cannot exclude the scratch workspace and a
+live scratch session would be tracked, permanently), then it untracks anything belonging to the
+scratch workspace, the literal `"scratch"` and `launch-…` ids left by older builds, and cubes
+whose session no longer exists at all (skipped while a launch is in flight, since that session
+is legitimately not in the list yet). The cube's dot mirrors the backend
 session status (amber = working, rose = awaiting input, emerald = done).
 
 `SessionList` mirrors that state: tracked sessions float to the top of their group (in cube

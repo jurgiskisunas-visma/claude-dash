@@ -15,7 +15,12 @@ import { subscribeCommands, type Command } from "./lib/commands";
 import { togglePin } from "./lib/pinnedSessions";
 import { hideSession, isHidden, unhideSession } from "./lib/hiddenSessions";
 import { ScratchTerminal } from "./components/ScratchTerminal";
-import { forceTrackSession, trackSession } from "./lib/activeWork";
+import {
+  forceTrackSession,
+  getSnapshot as getActiveWork,
+  trackSession,
+  untrackSession,
+} from "./lib/activeWork";
 import { rememberPath } from "./lib/recentPaths";
 import {
   focusTerminal,
@@ -227,16 +232,49 @@ export default function App() {
 
   // Auto-populate the active-work strip: any live session, plus whatever the user
   // opens. Cubes only leave the strip when the user closes them.
+  //
+  // Both effects wait for /api/scratch. Until it resolves, `visibleSessions` cannot exclude the
+  // scratch workspace, and a scratch session that happened to be live would be tracked — which
+  // then sticks, because the strip is persisted.
   useEffect(() => {
+    if (!scratch.data) return;
     for (const s of visibleSessions) {
       if (s.isLive) trackSession(s.sessionId);
     }
-  }, [visibleSessions]);
+  }, [visibleSessions, scratch.data]);
   useEffect(() => {
+    if (!scratch.data) return;
     if (sessionId && visibleSessions.some((s) => s.sessionId === sessionId)) {
       trackSession(sessionId);
     }
-  }, [sessionId, visibleSessions]);
+  }, [sessionId, visibleSessions, scratch.data]);
+
+  // The scratch pad is deliberately not work: drop it from the strip if it ever got in (an
+  // older build, or the race above). untrackSession also records the dismissal, so the
+  // auto-add rules leave it alone from here on.
+  useEffect(() => {
+    if (!scratch.data) return;
+    for (const s of sessions.data ?? []) {
+      if (s.workspaceId === scratchWs || normCwd(s.cwd) === scratchCwd) {
+        untrackSession(s.sessionId);
+      }
+    }
+    // Terminal keys carry a session id, except the two that aren't one: the scratch pad uses
+    // the literal "scratch", and a session started from "+ New" uses a `launch-…` placeholder
+    // until /api/live reveals its real id. Older builds tracked those verbatim.
+    for (const id of getActiveWork()) {
+      if (id === "scratch" || id.startsWith("launch-")) untrackSession(id);
+    }
+    // Cubes for sessions that no longer exist (transcript deleted, directory gone) would
+    // otherwise sit there forever showing a bare id. Skipped while a launch is in flight,
+    // since that session legitimately isn't in the list yet.
+    if (sessions.data && !pendingLaunch) {
+      const known = new Set(sessions.data.map((s) => s.sessionId));
+      for (const id of getActiveWork()) {
+        if (!known.has(id)) untrackSession(id);
+      }
+    }
+  }, [sessions.data, scratch.data, scratchWs, scratchCwd, pendingLaunch]);
 
   // Opening a terminal is a deliberate act, so it re-adds the session even if its cube was
   // closed earlier. Only on the transition, though: re-applying it on every render would make
@@ -244,6 +282,7 @@ export default function App() {
   // are real sessions, which keeps the scratch pad and unpromoted launch keys out of the strip.
   const seenTerminalIds = useRef<Set<string>>(new Set());
   useEffect(() => {
+    if (!scratch.data) return;
     const known = seenTerminalIds.current;
     for (const id of terminalSessionIds) {
       if (known.has(id)) continue;
@@ -253,7 +292,7 @@ export default function App() {
     for (const id of [...known]) {
       if (!terminalSessionIds.has(id)) known.delete(id);
     }
-  }, [terminalSessionIds, visibleSessions]);
+  }, [terminalSessionIds, visibleSessions, scratch.data]);
 
   // Promote the user to the new session's panel when its JSONL first arrives.
   // Give up after 60s.
