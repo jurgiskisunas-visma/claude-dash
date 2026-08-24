@@ -49,17 +49,24 @@ if ($Clean) {
     }
 }
 
-Write-Host "`nBackend ($config)" -ForegroundColor Cyan
-Push-Location (Join-Path $root 'backend\ClaudeDash.Api')
-try {
-    dotnet build -c $config --nologo
-    if ($LASTEXITCODE -ne 0) {
-        if (-not $StopRunning -and (Get-Process -Name ClaudeDash.Api -ErrorAction SilentlyContinue)) {
-            Write-Host "`nThe backend is running and holds its own binary. Re-run with -StopRunning." -ForegroundColor Yellow
-        }
-        exit $LASTEXITCODE
-    }
-} finally { Pop-Location }
+# A running Debug backend holds bin\Debug\...\ClaudeDash.Api.exe, so building over it fails
+# after ten retries. Skip it rather than fight it: the running instance is someone's working
+# session with live terminals attached. Release builds write elsewhere and are never affected.
+$runningBackend = if ($config -eq 'Debug') { Get-Process -Name ClaudeDash.Api -ErrorAction SilentlyContinue } else { $null }
+
+if ($runningBackend -and -not $StopRunning) {
+    Write-Host "`nBackend ($config) — skipped" -ForegroundColor DarkYellow
+    Write-Host "  ClaudeDash.Api is running (pid $($runningBackend.Id -join ', ')) and holds its own binary." -ForegroundColor DarkGray
+    Write-Host "  Left it alone. Use -StopRunning to stop it and build (closes its terminals)," -ForegroundColor DarkGray
+    Write-Host "  or -Release to build without touching it." -ForegroundColor DarkGray
+} else {
+    Write-Host "`nBackend ($config)" -ForegroundColor Cyan
+    Push-Location (Join-Path $root 'backend\ClaudeDash.Api')
+    try {
+        dotnet build -c $config --nologo
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    } finally { Pop-Location }
+}
 
 Write-Host "`nFrontend" -ForegroundColor Cyan
 Push-Location (Join-Path $root 'frontend')
@@ -74,6 +81,8 @@ try {
 
 $elapsed = [int]((Get-Date) - $started).TotalSeconds
 Write-Host "`nBuilt in ${elapsed}s" -ForegroundColor Green
-Write-Host "  backend   backend\ClaudeDash.Api\bin\$config\net10.0\" -ForegroundColor DarkGray
+if (-not ($runningBackend -and -not $StopRunning)) {
+    Write-Host "  backend   backend\ClaudeDash.Api\bin\$config\net10.0\" -ForegroundColor DarkGray
+}
 Write-Host "  frontend  frontend\dist\" -ForegroundColor DarkGray
 Write-Host "`nRun it with .\start.ps1 (dev servers, hot reload)`n"

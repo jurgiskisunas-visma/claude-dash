@@ -19,8 +19,13 @@ cd D:\Projects\ArtificialAssistant
 `start.ps1` loads `.env`, then runs `dotnet run` (backend) and `npm run dev` (Vite) side by side. Ctrl+C stops both.
 
 `setup.ps1` is the fresh-clone path (prerequisite checks, `.env`, restore, one build) and is
-idempotent. `build.ps1` builds both halves — `-Release`, `-Clean`, and `-StopRunning`, the last
-because a running backend holds its own binary and the build fails with MSB3027 otherwise.
+idempotent. `build.ps1` builds both halves — `-Release`, `-Clean`, `-StopRunning`.
+
+**Both scripts leave a running instance alone**, because the alternative is worse than a failed
+build: `dotnet build` in Debug cannot overwrite `ClaudeDash.Api.exe` while it is running, and
+stopping that process kills every PTY it hosts. So `build.ps1` skips the backend (saying so) and
+builds only the frontend unless `-StopRunning` is passed, and `start.ps1` starts only the halves
+that are not already listening on 7341 / 7342 and stops only what it started.
 `setup.ps1` deliberately prefers `npm install` over `npm ci` when `node_modules` already
 exists: `npm ci` deletes the tree first, which fails while the dev server holds `esbuild.exe`.
 

@@ -61,8 +61,13 @@ working; `build.ps1` is for a full type-check and production bundle:
 .uild.ps1 -Clean -StopRunning  # wipe bin/obj/dist, and stop a running backend first
 ```
 
-A running backend holds `ClaudeDash.Api.exe`, so a Debug build fails with MSB3027 unless you
-pass `-StopRunning` — which also closes every terminal that backend is hosting.
+A running backend holds `ClaudeDash.Api.exe`, so `build.ps1` **skips the backend** when it finds
+one running and tells you so — the running instance is a working session with live terminals
+attached, and killing it to compile is rarely what you want. Pass `-StopRunning` to stop it and
+build anyway, or `-Release` to build without touching it.
+
+`start.ps1` behaves the same way: anything already listening on 7341 or 7342 is left alone, and
+it only starts what is missing. Running it twice is safe.
 
 Running the backend on its own is possible but **does not load `.env`**:
 

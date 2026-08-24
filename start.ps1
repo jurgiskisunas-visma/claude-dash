@@ -35,30 +35,57 @@ if ($env:JIRA_STATUS_LADDER) { $env:Jira__StatusLadder = $env:JIRA_STATUS_LADDER
 if ($env:SCRATCH_DIR)    { $env:Scratch__Dir  = $env:SCRATCH_DIR }
 if ($env:CLAUDE_HOME)    { $env:ClaudeDash__ClaudeHome = $env:CLAUDE_HOME }
 
-Write-Host "Backend  → http://localhost:7341"
-Write-Host "Frontend → http://localhost:7342"
+function Test-Listening([int]$Port) {
+    $null -ne (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue)
+}
+
+# Anything already serving is left exactly as it is. Re-running this script used to start a
+# second backend, whose build then failed because the running one holds ClaudeDash.Api.exe —
+# and restarting the backend would kill every terminal it hosts, which is never what you want
+# from a command whose job is "make sure it's up".
+$backendUp  = Test-Listening 7341
+$frontendUp = Test-Listening 7342
+
+if ($backendUp)  { Write-Host "Backend  → http://localhost:7341  (already running, left alone)" -ForegroundColor DarkYellow }
+else             { Write-Host "Backend  → http://localhost:7341" }
+if ($frontendUp) { Write-Host "Frontend → http://localhost:7342  (already running, left alone)" -ForegroundColor DarkYellow }
+else             { Write-Host "Frontend → http://localhost:7342" }
 Write-Host ""
 
-# Start backend
-$backend = Start-Process pwsh -PassThru -NoNewWindow -ArgumentList @(
-    "-NoLogo", "-Command",
-    "cd `"$root\backend\ClaudeDash.Api`"; dotnet run --urls http://localhost:7341"
-)
+if ($backendUp -and $frontendUp) {
+    Write-Host "Everything is already up — nothing to do." -ForegroundColor Green
+    Write-Host "  Open http://localhost:7342"
+    Write-Host "  To restart the backend (this closes its terminals):" -ForegroundColor DarkGray
+    Write-Host "    Get-Process -Name ClaudeDash.Api | Stop-Process -Force" -ForegroundColor DarkGray
+    exit 0
+}
 
-# Start frontend
-$frontend = Start-Process pwsh -PassThru -NoNewWindow -ArgumentList @(
-    "-NoLogo", "-Command",
-    "cd `"$root\frontend`"; npm run dev"
-)
+$started = @()
+
+if (-not $backendUp) {
+    $started += Start-Process pwsh -PassThru -NoNewWindow -ArgumentList @(
+        "-NoLogo", "-Command",
+        "cd `"$root\backend\ClaudeDash.Api`"; dotnet run --urls http://localhost:7341"
+    )
+}
+
+if (-not $frontendUp) {
+    $started += Start-Process pwsh -PassThru -NoNewWindow -ArgumentList @(
+        "-NoLogo", "-Command",
+        "cd `"$root\frontend`"; npm run dev"
+    )
+}
 
 try {
-    Write-Host "Press Ctrl+C to stop both." -ForegroundColor DarkGray
-    Wait-Process -Id $backend.Id, $frontend.Id
+    $what = if ($started.Count -gt 1) { "both" } else { "it" }
+    Write-Host "Press Ctrl+C to stop $what." -ForegroundColor DarkGray
+    Wait-Process -Id ($started | ForEach-Object { $_.Id })
 }
 finally {
-    foreach ($p in @($backend, $frontend)) {
-        if ($p -and -not $p.HasExited) {
-            try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch {}
+    # Only ever stop what this invocation started.
+    foreach ($proc in $started) {
+        if ($proc -and -not $proc.HasExited) {
+            try { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue } catch {}
         }
     }
 }

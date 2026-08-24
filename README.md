@@ -126,8 +126,8 @@ Then open **http://localhost:7342**.
 | Script | What it does |
 |---|---|
 | `setup.ps1` | First-time setup. Idempotent, so it is also the "fix my checkout" button. `-SkipBuild` to only restore. |
-| `build.ps1` | Builds backend + frontend. `-Release`, `-Clean`, and `-StopRunning` (a running backend holds its own binary). |
-| `start.ps1` | Loads `.env` and runs both dev servers with hot reload; Ctrl+C stops both. |
+| `build.ps1` | Builds backend + frontend. Skips the backend if one is running (it holds its own binary); `-StopRunning` overrides, `-Release` sidesteps it, `-Clean` wipes outputs. |
+| `start.ps1` | Loads `.env` and runs the dev servers with hot reload. Leaves anything already running alone, so re-running is safe; Ctrl+C stops only what it started. |
 | `install-startup.ps1` | Adds (or `-Remove`s) a Startup-folder shortcut so it runs hidden at login. |
 
 See **[docs/INSTALL.md](docs/INSTALL.md)** for configuration, running it at login, and
