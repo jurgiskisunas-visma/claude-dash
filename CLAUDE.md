@@ -354,11 +354,21 @@ It slides out of the rail — 190ms in, 130ms out (`.peek-in` / `.peek-out` in `
 The exit is why the overlay has both a `peeking` (mounted) and a `leaving` (animating out)
 state; `prefers-reduced-motion` flattens both.
 
+Opening waits **220ms of hover intent**: the rail sits between the window edge and the detail
+pane, so a pointer on its way elsewhere crosses it constantly, and opening instantly made the
+overlay flash during ordinary mouse movement. Leaving the rail before the delay elapses cancels
+the pending open.
+
 The peek overlay closes by checking **what the pointer is over** (`host.contains(target)` on
 mousemove), not by `mouseleave`: it is an absolutely positioned child extending far outside
 its 48px parent, boundary events there are unreliable, and an overlay stuck over the detail
 pane is the worst thing this feature could do. Containment also covers the overlay's own edge
 grip, which sits outside the overlay box. Escape closes it too.
+
+Pointer position alone isn't enough, though: **leaving the window stops `mousemove`**, so the
+overlay would stay open over the detail pane until the pointer came back. It also listens for
+`mouseleave` on the document, `pointerout` with no `relatedTarget`, and `blur` on the window
+(alt-tab, or a click into another app).
 
 ## Transcript rendering
 

@@ -63,13 +63,27 @@ export function SessionList({
   const [leaving, setLeaving] = useState(false);
   const peekRef = useRef<HTMLDivElement>(null);
   const leaveTimer = useRef<number | null>(null);
+  const openTimer = useRef<number | null>(null);
 
+  // Hover intent: the rail sits between the window edge and the detail pane, so a pointer on
+  // its way somewhere else crosses it constantly. Waiting a moment means only a deliberate
+  // hover opens the overlay.
+  const OPEN_DELAY_MS = 220;
+
+  const cancelOpen = () => {
+    if (openTimer.current !== null) { window.clearTimeout(openTimer.current); openTimer.current = null; }
+  };
   const openPeek = () => {
     if (leaveTimer.current !== null) { window.clearTimeout(leaveTimer.current); leaveTimer.current = null; }
-    setLeaving(false);
-    setPeeking(true);
+    if (peeking || openTimer.current !== null) return;
+    openTimer.current = window.setTimeout(() => {
+      openTimer.current = null;
+      setLeaving(false);
+      setPeeking(true);
+    }, OPEN_DELAY_MS);
   };
   const closePeek = () => {
+    cancelOpen();
     if (leaveTimer.current !== null || !peeking) return;
     setLeaving(true);
     leaveTimer.current = window.setTimeout(() => {
@@ -80,6 +94,8 @@ export function SessionList({
   };
   useEffect(() => () => {
     if (leaveTimer.current !== null) window.clearTimeout(leaveTimer.current);
+    cancelOpen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Closed by tracking what the pointer is actually over, rather than by mouseleave: the
@@ -94,11 +110,26 @@ export function SessionList({
       if (!host.contains(e.target as Node)) closePeek();
     };
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closePeek(); };
+
+    // Leaving the window stops mousemove entirely, so the checks above never fire and the
+    // overlay would sit there covering the detail pane until the pointer came back. Catch every
+    // way out: off the document, out of the viewport, and the window losing focus (alt-tab, or
+    // a click into another app).
+    const onDocLeave = () => closePeek();
+    const onWindowBlur = () => closePeek();
+    const onPointerOut = (e: PointerEvent) => { if (!e.relatedTarget) closePeek(); };
+
     window.addEventListener("mousemove", onMove);
     window.addEventListener("keydown", onKey);
+    document.addEventListener("mouseleave", onDocLeave);
+    document.addEventListener("pointerout", onPointerOut);
+    window.addEventListener("blur", onWindowBlur);
     return () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("keydown", onKey);
+      document.removeEventListener("mouseleave", onDocLeave);
+      document.removeEventListener("pointerout", onPointerOut);
+      window.removeEventListener("blur", onWindowBlur);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [peeking, leaving]);
@@ -374,6 +405,7 @@ export function SessionList({
         ref={peekRef}
         className="shrink-0 relative"
         onMouseEnter={openPeek}
+        onMouseLeave={cancelOpen}
       >
         <Rail
           sessions={orderedIds.map((id) => filtered.find((s) => s.sessionId === id)!).filter(Boolean)}
