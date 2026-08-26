@@ -74,7 +74,7 @@ The whole dashboard is drivable without the mouse.
 | `T` | resume this session in a terminal, or jump to the one already running |
 | `I` | put the keyboard *in* the terminal — press again to hand it back |
 | `P` `X` | pin, hide |
-| `/` | search the session list (`Esc` leaves the box) |
+| `/` | search the session list — name, directory, branch, first prompt, Jira key, or session id (`Esc` leaves the box) |
 | `N` `S` | new session, scratch pad |
 | `?` | the full list |
 

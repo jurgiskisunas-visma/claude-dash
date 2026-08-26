@@ -337,6 +337,16 @@ In Review, Done`.
 The backend log prints the redirect target when that happens. Self-hosted instances often
 also require the corporate VPN to be connected.
 
+## Session list search
+
+`/` filters on the custom name, directory, cwd, branch, first user prompt, Jira keys **and the
+session id**. Ids are also matched with dashes stripped, so a uuid pasted from a log or a URL,
+the 8-character prefix the row shows, or a chunk from the middle all find the same session.
+Custom names live in localStorage rather than on the session record, so the filter reads the
+`sessionNames` store directly.
+
+When a query is active, age-based hiding is ignored — search looks at everything.
+
 ## Session list modes
 
 Two layouts, remembered in localStorage (`claudedash:session-list-mode`):

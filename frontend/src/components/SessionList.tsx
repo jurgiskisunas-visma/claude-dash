@@ -3,6 +3,7 @@ import clsx from "clsx";
 import type { SessionSummary } from "../types/api";
 import { Chip } from "./Chip";
 import { useSessionName } from "../hooks/useSessionName";
+import { getSnapshot as getNames, subscribe as subscribeNames } from "../lib/sessionNames";
 import { Kbd } from "./Kbd";
 import { subscribeCommands, type Command } from "../lib/commands";
 import { usePinnedSet } from "../hooks/usePinned";
@@ -40,6 +41,8 @@ export function SessionList({
   onNewSession,
 }: Props) {
   const [query, setQuery] = useState("");
+  // Names are browser-local, so searching has to read the store rather than the session record.
+  const names = useSyncExternalStore(subscribeNames, getNames);
   const [liveOnly, setLiveOnly] = useState(false);
   const [showOld, setShowOld] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
@@ -174,20 +177,27 @@ export function SessionList({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+    // Session ids get matched with dashes stripped as well, so a uuid pasted from a log,
+    // a URL or the 8-character prefix the UI shows all find the same row.
+    const qDigits = q.replace(/-/g, "");
     return sessions.filter((s) => {
       if (isAutomationSession(s)) return false;
       if (!showHidden && hidden.has(s.sessionId)) return false;
       if (liveOnly && !s.isLive) return false;
       if (!q) return true;
+      const id = s.sessionId.toLowerCase();
       return (
+        (names[s.sessionId]?.toLowerCase().includes(q) ?? false) ||
         s.dirLabel.toLowerCase().includes(q) ||
         s.cwd.toLowerCase().includes(q) ||
         (s.gitBranch?.toLowerCase().includes(q) ?? false) ||
         (s.firstUserPrompt?.toLowerCase().includes(q) ?? false) ||
-        s.jiraKeys.some((k) => k.toLowerCase().includes(q))
+        s.jiraKeys.some((k) => k.toLowerCase().includes(q)) ||
+        id.includes(q) ||
+        (qDigits.length >= 3 && id.replace(/-/g, "").includes(qDigits))
       );
     });
-  }, [sessions, query, liveOnly, hidden, showHidden]);
+  }, [sessions, query, liveOnly, hidden, showHidden, names]);
   const hiddenCount = useMemo(
     () => sessions.reduce((n, s) => n + (hidden.has(s.sessionId) ? 1 : 0), 0),
     [sessions, hidden],
@@ -299,7 +309,7 @@ export function SessionList({
             ref={searchRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search directory, branch, prompt, key"
+            placeholder="Search name, directory, branch, prompt, key, id"
             className="field w-full text-xs pl-2.5 pr-7 py-1.5"
           />
           <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
