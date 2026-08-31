@@ -59,7 +59,7 @@ public sealed partial class ClaudeDataService
     public IReadOnlyList<SessionSummary> ListAllSessions(int limit = 500)
     {
         if (!Directory.Exists(ProjectsDir)) return [];
-        var live = LoadLiveSessions().ToDictionary(s => s.SessionId, s => s);
+        var live = LoadLiveSessionMap();
         var result = new List<SessionSummary>();
         foreach (var dir in Directory.EnumerateDirectories(ProjectsDir))
         {
@@ -81,7 +81,7 @@ public sealed partial class ClaudeDataService
         var dir = Path.Combine(ProjectsDir, workspaceId);
         if (!Directory.Exists(dir)) return [];
 
-        var live = LoadLiveSessions().ToDictionary(s => s.SessionId, s => s);
+        var live = LoadLiveSessionMap();
 
         return Directory.EnumerateFiles(dir, "*.jsonl")
             .Select(file => SummarizeSession(workspaceId, file, live))
@@ -222,6 +222,45 @@ public sealed partial class ClaudeDataService
             }
         }
         return list;
+    }
+
+    /// <summary>
+    /// Live sessions keyed by session id. ~/.claude/sessions can legitimately hold
+    /// several pid files naming the same session (a resumed session, or a stale file
+    /// left by a process that died without cleaning up), so this must never assume the
+    /// ids are unique — a plain ToDictionary throws on the second one. Entries with a
+    /// live process win, then the most recent start; blank ids are dropped.
+    /// </summary>
+    public Dictionary<string, LiveSession> LoadLiveSessionMap()
+    {
+        var map = new Dictionary<string, LiveSession>(StringComparer.Ordinal);
+        foreach (var s in LoadLiveSessions())
+        {
+            if (string.IsNullOrWhiteSpace(s.SessionId)) continue;
+            if (map.TryGetValue(s.SessionId, out var existing) && !Preferred(s, existing)) continue;
+            map[s.SessionId] = s;
+        }
+        return map;
+
+        static bool Preferred(LiveSession candidate, LiveSession existing)
+        {
+            var candidateAlive = IsProcessAlive(candidate.Pid);
+            var existingAlive = IsProcessAlive(existing.Pid);
+            if (candidateAlive != existingAlive) return candidateAlive;
+            return candidate.StartedAt > existing.StartedAt;
+        }
+    }
+
+    private static bool IsProcessAlive(int pid)
+    {
+        if (pid <= 0) return false;
+        try
+        {
+            using var p = System.Diagnostics.Process.GetProcessById(pid);
+            return !p.HasExited;
+        }
+        catch (ArgumentException) { return false; }
+        catch (InvalidOperationException) { return false; }
     }
 
     private static readonly HashSet<string> FileEditTools =
